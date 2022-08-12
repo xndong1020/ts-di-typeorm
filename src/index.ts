@@ -9,7 +9,6 @@ dotenv.config();
 
 // (async () => {
 //   await dbConnect();
-
 // })();
 
 const PORT = process.env.PORT || 8081;
