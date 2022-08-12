@@ -16,5 +16,6 @@ export const dbConnect = async () => {
       logging: true,
     });
     await dataSource.initialize();
+    console.log("dataSource initialized");
   }
 };

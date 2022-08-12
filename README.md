@@ -250,3 +250,28 @@ export class User {
     transfers: Transfer[];
 }
 ```
+
+### Add layers
+
+Now the structure of the project is like below:
+
+```
+├── app.ts
+├── controllers
+│   └── UserController.ts
+├── data-source.ts
+├── dbContext
+│   └── DbContext.ts
+├── entities
+│   ├── Transfer.entity.ts
+│   └── User.entity.ts
+├── index.ts
+├── repositories
+│   └── UserRepository.ts
+├── routers
+│   └── UserRouter.ts
+├── services
+│   └── UserService.ts
+└── utils
+    └── sleep.ts
+```

@@ -1,19 +1,27 @@
 import "reflect-metadata";
+import { Express } from "express";
+
 import dotenv from "dotenv";
 
 import { dataSource, dbConnect } from "./data-source";
-import app from "./app";
-import { User } from "./entities/User.entity";
+import { sleep } from "./utils/sleep";
 
 dotenv.config();
 
-// (async () => {
-//   await dbConnect();
-// })();
+let app: Express;
 
 const PORT = process.env.PORT || 8081;
-dbConnect()
-  .then(() => {
-    app.listen(PORT), () => console.log(`Server is listening on ${PORT}`);
-  })
-  .catch(console.error);
+
+(async () => {
+  try {
+    await dbConnect();
+    if (!!dataSource.initialize) {
+      app = (await import("./app")).default;
+      app.listen(PORT, () => {
+        console.log(`Example app listening on port ${PORT}`);
+      });
+    }
+  } catch (err) {
+    console.error(err);
+  }
+})();
