@@ -1,28 +1,20 @@
 import "reflect-metadata";
+import dotenv from "dotenv";
 
 import { dataSource, dbConnect } from "./data-source";
+import app from "./app";
 import { User } from "./entities/User.entity";
 
-(async () => {
-  await dbConnect();
-  //   const users = await dataSource.manager.find(User, {
-  //     relations: {
-  //       transfers: true,
-  //     },
-  //     where: {
-  //       firstName: "zack",
-  //     },
-  //   });
-  const users = await dataSource.getRepository(User).find({
-    where: {
-      firstName: "zack",
-    },
-  });
-  //   const users = await dataSource
-  //     .getRepository(User)
-  //     .createQueryBuilder("user")
-  //     .leftJoinAndSelect("user.transfers", "transfers")
-  //     .where("user.firstName=:name", { name: "zack" })
-  //     .getOne();
-  console.log("users", users);
-})();
+dotenv.config();
+
+// (async () => {
+//   await dbConnect();
+
+// })();
+
+const PORT = process.env.PORT || 8081;
+dbConnect()
+  .then(() => {
+    app.listen(PORT), () => console.log(`Server is listening on ${PORT}`);
+  })
+  .catch(console.error);
