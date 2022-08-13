@@ -598,3 +598,106 @@ usersRouter.get("/", async (req, res) => {
 
 export default usersRouter;
 ```
+
+#### DI using `tsyringe`
+
+##### Option 2a: Class-based injections
+
+It is very similar to `typedi`. But `tsyringe` has different util methods for helping us to manage the lifecycle of the dependency injection.
+
+`DbContext.ts`
+
+```ts
+import { Lifecycle, scoped } from "tsyringe";
+import { EntitySchema, ObjectType, Repository } from "typeorm";
+import { dataSource } from "../data-source";
+
+@scoped(Lifecycle.ResolutionScoped)
+export class DbContext {
+  constructor() {}
+
+  getRepository<Entity>(
+    entityClass: ObjectType<Entity> | EntitySchema<Entity> | string
+  ): Repository<Entity> {
+    return dataSource.getRepository(entityClass);
+  }
+}
+```
+
+`UserRepository.ts`
+
+```ts
+import { Lifecycle, scoped } from "tsyringe";
+import { Repository } from "typeorm";
+import { DbContext } from "../dbContext/DbContext";
+import { User } from "../entities/User.entity";
+
+@scoped(Lifecycle.ResolutionScoped)
+export class UserRepository {
+  private userOrmRepo: Repository<User>;
+
+  constructor(private dbContext: DbContext) {
+    this.userOrmRepo = dbContext.getRepository(User);
+  }
+
+  getAll = async (): Promise<User[]> => {
+    return this.userOrmRepo.find();
+  };
+}
+```
+
+`UserService.ts`
+
+```ts
+import { scoped, Lifecycle } from "tsyringe";
+import { User } from "../entities/User.entity";
+import { UserRepository } from "../repositories/UserRepository";
+
+@scoped(Lifecycle.ResolutionScoped)
+export class UserService {
+  constructor(private userRepository: UserRepository) {}
+
+  getAll = async (): Promise<User[]> => {
+    return this.userRepository.getAll();
+  };
+}
+```
+
+`UserController.ts`
+
+```ts
+import { scoped, Lifecycle } from "tsyringe";
+import { User } from "../entities/User.entity";
+import { UserService } from "../services/UserService";
+
+@scoped(Lifecycle.ResolutionScoped)
+class UserController {
+  constructor(private userService: UserService) {}
+
+  getAll = async (): Promise<User[]> => {
+    return this.userService.getAll();
+  };
+}
+
+export default UserController;
+```
+
+And `UserRouter.ts`
+
+```ts
+import express from "express";
+
+import { container } from "tsyringe";
+
+import UserController from "../controllers/UserController";
+
+const usersRouter = express.Router();
+const userController = container.resolve(UserController);
+
+usersRouter.get("/", async (req, res) => {
+  const result = await userController.getAll();
+  return res.json(result);
+});
+
+export default usersRouter;
+```

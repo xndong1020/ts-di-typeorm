@@ -1,16 +1,13 @@
-import { Inject } from "typedi";
+import { Lifecycle, scoped } from "tsyringe";
 import { Repository } from "typeorm";
-import { IDbContext } from "../dbContext/DbContext";
+import { DbContext } from "../dbContext/DbContext";
 import { User } from "../entities/User.entity";
 
-export interface IUserRepository {
-  getAll(): Promise<User[]>;
-}
-
-export class UserRepository implements IUserRepository {
+@scoped(Lifecycle.ResolutionScoped)
+export class UserRepository {
   private userOrmRepo: Repository<User>;
 
-  constructor(@Inject("dbContext") private dbContext: IDbContext) {
+  constructor(private dbContext: DbContext) {
     this.userOrmRepo = dbContext.getRepository(User);
   }
 
