@@ -1,7 +1,9 @@
+import { Service } from "typedi";
 import { Repository } from "typeorm";
 import { DbContext } from "../dbContext/DbContext";
 import { User } from "../entities/User.entity";
 
+@Service()
 export class UserRepository {
   private userOrmRepo: Repository<User>;
 

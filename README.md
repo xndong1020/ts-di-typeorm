@@ -371,3 +371,91 @@ app.use((req, res, next) => {
 
 export default app;
 ```
+
+### DI in typescript
+
+#### Option 1: typedi
+
+```
+yarn add typedi
+```
+
+##### Option 1a: Class-based injections
+
+This is the most straightforward way to do dependency injections. Every class uses the class-level `@Service` decorator.
+
+`UserController.ts` has a dependency on `UserService.ts`
+
+```ts
+import { Service } from "typedi";
+import { UserService } from "../services/UserService";
+
+@Service()
+class UserController {
+  constructor(private userService: UserService) {}
+
+  getAll = async () => {
+    return this.userService.getAll();
+  };
+}
+
+export default UserController;
+```
+
+`UserService.ts` has a dependency on `UserRepository.ts`
+
+```ts
+import { Service } from "typedi";
+import { Repository } from "typeorm";
+import { DbContext } from "../dbContext/DbContext";
+import { User } from "../entities/User.entity";
+
+@Service()
+export class UserRepository {
+  private userOrmRepo: Repository<User>;
+
+  constructor(private dbContext: DbContext) {
+    this.userOrmRepo = dbContext.getRepository(User);
+  }
+
+  getAll = async (): Promise<User[]> => {
+    return this.userOrmRepo.find();
+  };
+}
+```
+
+`UserRepository.ts` has a dependency on `DbContext.ts`
+
+```ts
+import { Service } from "typedi";
+import { EntitySchema, ObjectType, Repository } from "typeorm";
+import { dataSource } from "../data-source";
+
+@Service()
+export class DbContext {
+  getRepository<Entity>(
+    entityClass: ObjectType<Entity> | EntitySchema<Entity> | string
+  ): Repository<Entity> {
+    return dataSource.getRepository(entityClass);
+  }
+}
+```
+
+Now when `UserRouter.ts` wants to instantiate an instance of UserController, all it needs to do is to use typedi `Container.get(UserService)` to resolve the entire dependency chain.
+
+```ts
+import express from "express";
+import Container from "typedi";
+
+import { UserService } from "../services/UserService";
+
+const usersRouter = express.Router();
+const userController = Container.get(UserService);
+
+usersRouter.get("/", async (req, res) => {
+  const result = await userController.getAll();
+  return res.json(result);
+});
+
+export default usersRouter;
+```

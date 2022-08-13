@@ -1,15 +1,10 @@
 import express from "express";
+import Container from "typedi";
 
-import UserController from "../controllers/UserController";
-import { DbContext } from "../dbContext/DbContext";
-import { UserRepository } from "../repositories/UserRepository";
 import { UserService } from "../services/UserService";
 
 const usersRouter = express.Router();
-
-const userController = new UserController(
-  new UserService(new UserRepository(new DbContext()))
-);
+const userController = Container.get(UserService);
 
 usersRouter.get("/", async (req, res) => {
   const result = await userController.getAll();

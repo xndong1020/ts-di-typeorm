@@ -1,5 +1,7 @@
+import { Service } from "typedi";
 import { UserService } from "../services/UserService";
 
+@Service()
 class UserController {
   constructor(private userService: UserService) {}
 
