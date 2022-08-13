@@ -447,10 +447,149 @@ Now when `UserRouter.ts` wants to instantiate an instance of UserController, all
 import express from "express";
 import Container from "typedi";
 
-import { UserService } from "../services/UserService";
+import UserController from "../controllers/UserController";
 
 const usersRouter = express.Router();
-const userController = Container.get(UserService);
+const userController = container.get(UserController);
+
+usersRouter.get("/", async (req, res) => {
+  const result = await userController.getAll();
+  return res.json(result);
+});
+
+export default usersRouter;
+```
+
+##### Option 1b: Token-based injections
+
+Token-based injections bind `interfaces` to their implementations using a token as an intermediary. The only change in comparison to class-based injections is declaring the appropriate token for each construction parameter using the @Inject decorator:
+
+Instead of `@Service()` decorator on each class, we need to manually resolve the token-based injection
+
+container.ts
+
+```ts
+import Container from "typedi";
+import UserController from "./controllers/UserController";
+import { DbContext } from "./dbContext/DbContext";
+import { UserRepository } from "./repositories/UserRepository";
+import { UserService } from "./services/UserService";
+
+// Setup scope of the container
+const container = Container.of();
+
+// Register resolves
+container.set("dbContext", new DbContext());
+container.set("userRepository", new UserRepository(container.get("dbContext")));
+container.set("userService", new UserService(container.get("userRepository")));
+container.set(
+  "userController",
+  new UserController(container.get("userService"))
+);
+
+export default container;
+```
+
+`DbContext.ts` does not need to have the `@Service()` decorator anymore
+
+```ts
+import { EntitySchema, ObjectType, Repository } from "typeorm";
+import { dataSource } from "../data-source";
+
+export interface IDbContext {
+  getRepository<Entity>(
+    entityClass: ObjectType<Entity> | EntitySchema<Entity> | string
+  ): Repository<Entity>;
+}
+
+export class DbContext implements IDbContext {
+  getRepository<Entity>(
+    entityClass: ObjectType<Entity> | EntitySchema<Entity> | string
+  ): Repository<Entity> {
+    return dataSource.getRepository(entityClass);
+  }
+}
+```
+
+`UserRepository.ts` now depends on interface `IDbContext`. And the token-based injection `Inject("dbContext") private dbContext: IDbContext` will be resolved based on the settings we created in the `container.ts` registry.
+
+```ts
+import { Inject } from "typedi";
+import { Repository } from "typeorm";
+import { IDbContext } from "../dbContext/DbContext";
+import { User } from "../entities/User.entity";
+
+export interface IUserRepository {
+  getAll(): Promise<User[]>;
+}
+
+export class UserRepository implements IUserRepository {
+  private userOrmRepo: Repository<User>;
+
+  constructor(@Inject("dbContext") private dbContext: IDbContext) {
+    this.userOrmRepo = dbContext.getRepository(User);
+  }
+
+  getAll = async (): Promise<User[]> => {
+    return this.userOrmRepo.find();
+  };
+}
+```
+
+Similarly for `UserService.ts`
+
+```ts
+import { Inject } from "typedi";
+import { User } from "../entities/User.entity";
+import { IUserRepository } from "../repositories/UserRepository";
+
+export interface IUserService {
+  getAll(): Promise<User[]>;
+}
+
+export class UserService implements IUserService {
+  constructor(
+    @Inject("userRepository") private userRepository: IUserRepository
+  ) {}
+
+  getAll = async (): Promise<User[]> => {
+    return this.userRepository.getAll();
+  };
+}
+```
+
+`UserController.ts`
+
+```ts
+import { Inject } from "typedi";
+import { User } from "../entities/User.entity";
+import { IUserService } from "../services/UserService";
+
+export class BaseController {}
+
+class UserController extends BaseController {
+  constructor(@Inject("userService") private userService: IUserService) {
+    super();
+  }
+
+  getAll = async (): Promise<User[]> => {
+    return this.userService.getAll();
+  };
+}
+
+export default UserController;
+```
+
+`UserRouter.ts`
+
+```ts
+import express from "express";
+
+import container from "../container";
+import UserController from "../controllers/UserController";
+
+const usersRouter = express.Router();
+const userController: UserController = container.get("userController");
 
 usersRouter.get("/", async (req, res) => {
   const result = await userController.getAll();

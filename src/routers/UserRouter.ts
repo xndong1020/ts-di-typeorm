@@ -1,9 +1,10 @@
 import express from "express";
-import Container from "typedi";
+
+import container from "../container";
 import UserController from "../controllers/UserController";
 
 const usersRouter = express.Router();
-const userController = Container.get(UserController);
+const userController: UserController = container.get("userController");
 
 usersRouter.get("/", async (req, res) => {
   const result = await userController.getAll();

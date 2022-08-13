@@ -1,11 +1,15 @@
-import { Service } from "typedi";
-import { UserService } from "../services/UserService";
+import { Inject } from "typedi";
+import { User } from "../entities/User.entity";
+import { IUserService } from "../services/UserService";
 
-@Service()
-class UserController {
-  constructor(private userService: UserService) {}
+export class BaseController {}
 
-  getAll = async () => {
+class UserController extends BaseController {
+  constructor(@Inject("userService") private userService: IUserService) {
+    super();
+  }
+
+  getAll = async (): Promise<User[]> => {
     return this.userService.getAll();
   };
 }

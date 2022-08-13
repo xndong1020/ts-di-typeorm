@@ -1,13 +1,16 @@
-import { Service } from "typedi";
+import { Inject } from "typedi";
 import { Repository } from "typeorm";
-import { DbContext } from "../dbContext/DbContext";
+import { IDbContext } from "../dbContext/DbContext";
 import { User } from "../entities/User.entity";
 
-@Service()
-export class UserRepository {
+export interface IUserRepository {
+  getAll(): Promise<User[]>;
+}
+
+export class UserRepository implements IUserRepository {
   private userOrmRepo: Repository<User>;
 
-  constructor(private dbContext: DbContext) {
+  constructor(@Inject("dbContext") private dbContext: IDbContext) {
     this.userOrmRepo = dbContext.getRepository(User);
   }
 
