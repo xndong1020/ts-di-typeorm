@@ -6,7 +6,7 @@ export class UserRepository {
   private userOrmRepo: Repository<User>;
 
   constructor(private dbContext: DbContext) {
-    this.userOrmRepo = dbContext?.getRepository(User);
+    this.userOrmRepo = dbContext.getRepository(User);
   }
 
   getAll = async (): Promise<User[]> => {

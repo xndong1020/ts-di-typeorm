@@ -1,10 +1,8 @@
 import "reflect-metadata";
 import { Express } from "express";
-
 import dotenv from "dotenv";
 
 import { dataSource, dbConnect } from "./data-source";
-import { sleep } from "./utils/sleep";
 
 dotenv.config();
 

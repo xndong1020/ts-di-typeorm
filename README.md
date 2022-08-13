@@ -275,3 +275,99 @@ Now the structure of the project is like below:
 └── utils
     └── sleep.ts
 ```
+
+The Repository class has a dependency on the DbContext class
+
+Repositories/UserRepository class
+
+```ts
+import { Repository } from "typeorm";
+import { DbContext } from "../dbContext/DbContext";
+import { User } from "../entities/User.entity";
+
+export class UserRepository {
+  private userOrmRepo: Repository<User>;
+
+  constructor(private dbContext: DbContext) {
+    this.userOrmRepo = dbContext.getRepository(User);
+  }
+
+  getAll = async (): Promise<User[]> => {
+    return this.userOrmRepo.find();
+  };
+}
+```
+
+DbContext.ts
+
+```ts
+import { EntitySchema, ObjectType, Repository } from "typeorm";
+import { dataSource } from "../data-source";
+
+export class DbContext {
+  getRepository<Entity>(
+    entityClass: ObjectType<Entity> | EntitySchema<Entity> | string
+  ): Repository<Entity> {
+    return dataSource.getRepository(entityClass);
+  }
+}
+```
+
+Since we import the `dataSource` from a separate class. we need to make sure that the dataSource has been initialized before DbContext start using it.
+
+In order to do that, we need to import the `app.ts` which initializes the express server instance, **after the dataSource has been initialized**
+
+```ts
+import "reflect-metadata";
+import { Express } from "express";
+import dotenv from "dotenv";
+
+import { dataSource, dbConnect } from "./data-source";
+
+dotenv.config();
+
+let app: Express;
+
+const PORT = process.env.PORT || 8081;
+
+(async () => {
+  try {
+    await dbConnect();
+    if (!!dataSource.initialize) {
+      app = (await import("./app")).default;
+      app.listen(PORT, () => {
+        console.log(`Example app listening on port ${PORT}`);
+      });
+    }
+  } catch (err) {
+    console.error(err);
+  }
+})();
+```
+
+app.ts
+
+```ts
+import express from "express";
+import cors from "cors";
+
+import usersRouter from "./routers/UserRouter";
+
+const app = express();
+
+app.use(express.json());
+app.use(cors());
+
+app.get("/", (req, res) => {
+  res.send("root working");
+});
+
+app.use("/v1/users", usersRouter);
+
+// catch all 404
+app.use((req, res, next) => {
+  res.status(404).send("route not found");
+});
+
+export default app;
+```
