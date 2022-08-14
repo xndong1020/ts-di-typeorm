@@ -701,3 +701,42 @@ usersRouter.get("/", async (req, res) => {
 
 export default usersRouter;
 ```
+
+##### Option 2b: Token-based injections
+
+Unfortunately `tsyringe` token-based injection did not work well with this project. Main reason was because it doesn't work with the `UserController` with the token-based injection of the `UserService`.
+
+The only way I can get it working is to use below code, which is not what I am expecting from an DI framework.
+
+```ts
+container.register<IUserController>("userController", {
+  useFactory: (_) =>
+    new UserController(new UserService(new UserRepository(new DbContext()))),
+});
+```
+
+```ts
+import { container, Lifecycle } from "tsyringe";
+
+import UserController from "./controllers/UserController";
+import { DbContext, IDbContext } from "./dbContext/DbContext";
+import { IUserRepository, UserRepository } from "./repositories/UserRepository";
+import { IUserService, UserService } from "./services/UserService";
+
+// Register resolves
+container.register<IDbContext>("dbContext", DbContext, {
+  lifecycle: Lifecycle.ResolutionScoped,
+});
+container.register<IUserRepository>("userRepository", UserRepository, {
+  lifecycle: Lifecycle.ResolutionScoped,
+});
+container.register<IUserService>("userService", UserService, {
+  lifecycle: Lifecycle.ResolutionScoped,
+});
+container.register<IUserController>("userController", {
+  useFactory: (_) =>
+    new UserController(new UserService(new UserRepository(new DbContext()))),
+});
+
+export default container;
+```

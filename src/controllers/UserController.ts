@@ -1,13 +1,20 @@
-import { scoped, Lifecycle } from "tsyringe";
+import {
+  autoInjectable,
+  inject,
+  injectable,
+  Lifecycle,
+  scoped,
+  singleton,
+} from "tsyringe";
 import { User } from "../entities/User.entity";
 import { UserService } from "../services/UserService";
 
-@scoped(Lifecycle.ResolutionScoped)
+@autoInjectable()
 class UserController {
-  constructor(private userService: UserService) {}
+  constructor(private userService?: UserService) {}
 
-  getAll = async (): Promise<User[]> => {
-    return this.userService.getAll();
+  getAll = async (): Promise<User[] | undefined> => {
+    return this.userService?.getAll();
   };
 }
 

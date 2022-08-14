@@ -1,10 +1,15 @@
-import { scoped, Lifecycle } from "tsyringe";
+import { inject } from "tsyringe";
 import { User } from "../entities/User.entity";
-import { UserRepository } from "../repositories/UserRepository";
+import { IUserRepository } from "../repositories/UserRepository";
 
-@scoped(Lifecycle.ResolutionScoped)
+export interface IUserService {
+  getAll(): Promise<User[]>;
+}
+
 export class UserService {
-  constructor(private userRepository: UserRepository) {}
+  constructor(
+    @inject("userRepository") private userRepository: IUserRepository
+  ) {}
 
   getAll = async (): Promise<User[]> => {
     return this.userRepository.getAll();

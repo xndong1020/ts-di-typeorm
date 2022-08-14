@@ -1,9 +1,13 @@
-import { Lifecycle, scoped } from "tsyringe";
 import { EntitySchema, ObjectType, Repository } from "typeorm";
 import { dataSource } from "../data-source";
 
-@scoped(Lifecycle.ResolutionScoped)
-export class DbContext {
+export interface IDbContext {
+  getRepository<Entity>(
+    entityClass: ObjectType<Entity> | EntitySchema<Entity> | string
+  ): Repository<Entity>;
+}
+
+export class DbContext implements IDbContext {
   constructor() {}
 
   getRepository<Entity>(

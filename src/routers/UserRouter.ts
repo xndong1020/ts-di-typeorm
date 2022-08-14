@@ -1,10 +1,10 @@
 import express from "express";
-
-import { container } from "tsyringe";
+import container from "../container";
 
 import UserController from "../controllers/UserController";
 
 const usersRouter = express.Router();
+
 const userController = container.resolve(UserController);
 
 usersRouter.get("/", async (req, res) => {

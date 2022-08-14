@@ -1,18 +1,23 @@
+import { container, Lifecycle } from "tsyringe";
+
 import UserController from "./controllers/UserController";
-import { DbContext } from "./dbContext/DbContext";
-import { UserRepository } from "./repositories/UserRepository";
-import { UserService } from "./services/UserService";
+import { DbContext, IDbContext } from "./dbContext/DbContext";
+import { IUserRepository, UserRepository } from "./repositories/UserRepository";
+import { IUserService, UserService } from "./services/UserService";
 
-// Setup scope of the container
-// const container = Container.of();
+// Register resolves
+container.register<IDbContext>("dbContext", DbContext, {
+  lifecycle: Lifecycle.ResolutionScoped,
+});
+container.register<IUserRepository>("userRepository", UserRepository, {
+  lifecycle: Lifecycle.ResolutionScoped,
+});
+container.register<IUserService>("userService", UserService, {
+  lifecycle: Lifecycle.ResolutionScoped,
+});
+container.register<UserController>("userController", {
+  useFactory: (_) =>
+    new UserController(new UserService(new UserRepository(new DbContext()))),
+});
 
-// // Register resolves
-// container.set("dbContext", new DbContext());
-// container.set("userRepository", new UserRepository(container.get("dbContext")));
-// container.set("userService", new UserService(container.get("userRepository")));
-// container.set(
-//   "userController",
-//   new UserController(container.get("userService"))
-// );
-
-// export default container;
+export default container;
