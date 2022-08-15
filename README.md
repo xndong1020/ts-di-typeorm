@@ -741,3 +741,163 @@ container.register<IUserController>("userController", {
 
 export default container;
 ```
+
+#### Refactor to Generic Repository/Service
+
+`repositories/BaseRepository.ts`
+
+```ts
+import { ObjectType, Repository } from "typeorm";
+import { IDbContext } from "../dbContext/DbContext";
+
+export interface IRepository<T> {
+  getAll(): Promise<T[]>;
+}
+
+export default class BaseRepository<T> implements IRepository<T> {
+  private ormRepo: Repository<T>;
+
+  constructor(entityClass: ObjectType<T>, private dbContext: IDbContext) {
+    this.ormRepo = this.dbContext.getRepository(entityClass);
+  }
+  async getAll(): Promise<T[]> {
+    const resource = (await this.ormRepo.find()) as T[];
+    return resource;
+  }
+}
+```
+
+`repositories/UserService.ts`
+
+```ts
+import { Inject } from "typedi";
+import { IDbContext } from "../dbContext/DbContext";
+import { User } from "../entities/User.entity";
+import BaseRepository from "./BaseRepository";
+
+export class UserRepository extends BaseRepository<User> {
+  constructor(@Inject("dbContext") dbContext: IDbContext) {
+    super(User, dbContext);
+  }
+}
+```
+
+`services/BaseService.ts`
+
+```ts
+import { IRepository } from "../repositories/BaseRepository";
+
+export interface IBaseService<T> {
+  getAll(): Promise<T[]>;
+}
+
+export default class BaseService<T> implements IBaseService<T> {
+  constructor(private repository: IRepository<T>) {}
+
+  getAll = async (filters = {}): Promise<T[]> => {
+    const resource = (await this.repository.getAll()) as T[];
+    return resource;
+  };
+}
+```
+
+`services/UserService.ts`
+
+```ts
+import { Inject } from "typedi";
+import { User } from "../entities/User.entity";
+import { IRepository } from "../repositories/BaseRepository";
+import BaseService from "./BaseService";
+
+export class UserService extends BaseService<User> {
+  constructor(@Inject("userRepository") userRepository: IRepository<User>) {
+    super(userRepository);
+  }
+}
+```
+
+`controllers/BaseController.ts`
+
+```ts
+import { Request, Response } from "express";
+import { IBaseService } from "../services/BaseService";
+
+export class BaseController<T = any> {
+  service: IBaseService<T>;
+
+  constructor(service: IBaseService<T>) {
+    this.service = service;
+  }
+
+  getAll = async (req: Request, res: Response): Promise<void> => {};
+}
+```
+
+`controllers/UserController.ts`
+
+```ts
+import { Request, Response } from "express";
+import { Inject } from "typedi";
+import { User } from "../entities/User.entity";
+import { IBaseService } from "../services/BaseService";
+import { BaseController } from "./BaseController";
+
+class UserController extends BaseController {
+  constructor(@Inject("userService") private userService: IBaseService<User>) {
+    super(userService);
+  }
+
+  getAll = async (req: Request, res: Response) => {
+    const resource = await this.service.getAll();
+    res.send(resource);
+  };
+}
+
+export default UserController;
+```
+
+`routers/UserRouter.ts`
+
+```ts
+import express from "express";
+import container from "../container.config";
+
+import UserController from "../controllers/UserController";
+
+const usersRouter = express.Router();
+
+const userController: UserController = container.get("userController");
+
+usersRouter.get("/", userController.getAll);
+
+export default usersRouter;
+```
+
+`container.config.ts`
+
+```ts
+import Container from "typedi";
+import UserController from "./controllers/UserController";
+import { DbContext } from "./dbContext/DbContext";
+import { User } from "./entities/User.entity";
+import BaseRepository from "./repositories/BaseRepository";
+import { UserService } from "./services/UserService";
+
+// Setup scope of the container
+const requestId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER); // uuid-like
+const container = Container.of(String(requestId));
+
+// Register resolves
+container.set("dbContext", new DbContext());
+container.set(
+  "userRepository",
+  new BaseRepository(User, container.get("dbContext"))
+);
+container.set("userService", new UserService(container.get("userRepository")));
+container.set(
+  "userController",
+  new UserController(container.get("userService"))
+);
+
+export default container;
+```
