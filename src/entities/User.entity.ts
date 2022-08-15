@@ -1,4 +1,10 @@
-import { Entity, Column, PrimaryColumn, OneToMany } from "typeorm";
+import {
+  Entity,
+  Column,
+  PrimaryColumn,
+  OneToMany,
+  DeleteDateColumn,
+} from "typeorm";
 import { Transfer } from "./Transfer.entity";
 
 @Entity()
@@ -15,7 +21,7 @@ export class User {
   @Column({ type: String })
   email: string;
 
-  @Column("timestamp with time zone", { name: "deleted_date" })
+  @DeleteDateColumn({ name: "deleted_date" })
   deletedDate: Date;
 
   @OneToMany(() => Transfer, (transfer) => transfer.user)

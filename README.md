@@ -901,3 +901,176 @@ container.set(
 
 export default container;
 ```
+
+### Jest setup
+
+#### Install
+
+```
+yarn add -D jest @types/jest ts-jest
+
+yarn ts-jest config:init
+```
+
+The auto-generated jest.config.js
+
+```js
+/** @type {import('ts-jest/dist/types').InitialOptionsTsJest} */
+module.exports = {
+  preset: "ts-jest",
+  testEnvironment: "node",
+};
+```
+
+#### Setup jest
+
+put "jest" in `tsconfig.json` `types` section
+
+```json
+"types": [
+      "reflect-metadata",
+      "jest"
+    ] /* Specify type package names to be included without being referenced in a source file. */,
+```
+
+#### create sqlite database for local e2e tests
+
+```
+yarn add -D sqlite3
+```
+
+modify `data-source.ts`
+
+```ts
+import path from "path";
+import { DataSource } from "typeorm";
+import { Transfer } from "./entities/Transfer.entity";
+import { User } from "./entities/User.entity";
+
+export let dataSource: DataSource;
+
+export const dbConnect = async () => {
+  if (!dataSource || !dataSource.initialize) {
+    try {
+      if (process.env.JEST_WORKER_ID !== undefined) {
+        dataSource = new DataSource({
+          type: "sqlite",
+          database: `${path.resolve(__dirname, ".")}/data/dev.sqlite`,
+          entities: [__dirname + "/entities/**/*.entity.ts"],
+          migrations: [__dirname + "/data/migrations/**/*.ts"],
+          synchronize: true,
+          logging: ["query", "error"],
+        });
+        // if jest is running the code
+      } else {
+        dataSource = new DataSource({
+          type: "postgres",
+          host: "localhost",
+          port: 5432,
+          username: "root",
+          password: "password",
+          database: "gographql",
+          entities: [__dirname + "/entities/**/*.entity.ts"],
+          synchronize: false,
+          logging: ["query", "error"],
+        });
+      }
+
+      await dataSource.initialize();
+      console.log("dataSource initialized");
+
+      if (process.env.JEST_WORKER_ID !== undefined) {
+        await dataSource.getRepository(User).save({
+          uid: "2",
+          firstName: "John",
+          lastName: "Doe",
+          email: "test@example.com",
+        });
+
+        await dataSource.getRepository(Transfer).save({
+          transferId: 2,
+          userId: "2",
+          dofType: "PDOF",
+        });
+
+        const users = await dataSource.getRepository(User).find({
+          relations: {
+            transfers: true,
+          },
+        });
+        console.log("from seed", JSON.stringify(users));
+      }
+    } catch (error) {
+      console.error(error);
+      console.log("dataSource error");
+    }
+  }
+};
+```
+
+Note:
+
+1. if calling `dbConnect` from jest, then jest will set `process.env.JEST_WORKER_ID` to a random number, starting from 1. Hence, we can use `process.env.JEST_WORKER_ID` to detect if it is running from jest tests.
+2. sqlite doesn't support `timestamp with time zone` data type. hence we changed the column `deletedDate` of `User` entity class to `@DeleteDateColumn`
+
+```ts
+  @DeleteDateColumn({ name: "deleted_date" })
+  deletedDate: Date;
+```
+
+#### Create our e2e test
+
+```ts
+import { Express } from "express";
+import { Server } from "http";
+import { agent, SuperAgentTest } from "supertest";
+import { dbConnect, dataSource } from "../data-source";
+
+describe("api e2e test", () => {
+  let app: Express;
+  let server: Server;
+  let request: SuperAgentTest;
+
+  beforeEach(async () => {
+    await dbConnect();
+    if (!!dataSource.initialize) {
+      app = (await import("../app")).default;
+      server = app.listen(4000, () => {
+        console.log(`Example app listening on port ${4000}`);
+      });
+    }
+    request = agent(server);
+  });
+
+  afterEach(async () => {
+    const entities = dataSource.entityMetadatas;
+    for (const entity of entities) {
+      const repository = dataSource.getRepository(entity.name); // Get repository
+      await repository.clear(); // Clear each entity table's content
+    }
+
+    dataSource.destroy();
+    server.close();
+  });
+
+  it("/users getAll should return all records", async () => {
+    // const { status, data } = await axios.get<User[]>(
+    //   "http://localhost:4000/v1/users"
+    // );
+    const { status, body } = await request.get("/v1/users");
+    expect(status).toEqual(200);
+    expect(body.length).toEqual(1);
+    expect(body).toMatchObject([
+      {
+        uid: "2",
+        firstName: "John",
+        lastName: "Doe",
+        email: "test@example.com",
+        deletedDate: null,
+      },
+    ]);
+  });
+});
+```
+
+Note: you can use `axios` or `supertest` as your http client for testing.

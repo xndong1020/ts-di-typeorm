@@ -12,7 +12,7 @@ export class Transfer {
   @Column({ name: "dof_type", type: String })
   dofType: string;
 
-  @ManyToOne(() => User, (user) => user.transfers)
+  @ManyToOne(() => User, (user) => user.transfers, { onDelete: "CASCADE" })
   @JoinColumn({ name: "user_id" })
   user: User;
 }
