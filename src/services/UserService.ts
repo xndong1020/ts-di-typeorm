@@ -1,17 +1,10 @@
-import { inject } from "tsyringe";
+import { Inject } from "typedi";
 import { User } from "../entities/User.entity";
-import { IUserRepository } from "../repositories/UserRepository";
+import { IRepository } from "../repositories/BaseRepository";
+import BaseService from "./BaseService";
 
-export interface IUserService {
-  getAll(): Promise<User[]>;
-}
-
-export class UserService {
-  constructor(
-    @inject("userRepository") private userRepository: IUserRepository
-  ) {}
-
-  getAll = async (): Promise<User[]> => {
-    return this.userRepository.getAll();
-  };
+export class UserService extends BaseService<User> {
+  constructor(@Inject("userRepository") userRepository: IRepository<User>) {
+    super(userRepository);
+  }
 }

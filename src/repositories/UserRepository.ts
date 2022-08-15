@@ -1,20 +1,10 @@
-import { inject } from "tsyringe";
-import { Repository } from "typeorm";
-import { DbContext, IDbContext } from "../dbContext/DbContext";
+import { Inject } from "typedi";
+import { IDbContext } from "../dbContext/DbContext";
 import { User } from "../entities/User.entity";
+import BaseRepository from "./BaseRepository";
 
-export interface IUserRepository {
-  getAll(): Promise<User[]>;
-}
-
-export class UserRepository implements IUserRepository {
-  private userOrmRepo: Repository<User>;
-
-  constructor(@inject("dbContext") private dbContext: IDbContext) {
-    this.userOrmRepo = dbContext.getRepository(User);
+export class UserRepository extends BaseRepository<User> {
+  constructor(@Inject("dbContext") dbContext: IDbContext) {
+    super(User, dbContext);
   }
-
-  getAll = async (): Promise<User[]> => {
-    return this.userOrmRepo.find();
-  };
 }

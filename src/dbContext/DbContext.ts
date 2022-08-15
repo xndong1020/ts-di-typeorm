@@ -8,8 +8,6 @@ export interface IDbContext {
 }
 
 export class DbContext implements IDbContext {
-  constructor() {}
-
   getRepository<Entity>(
     entityClass: ObjectType<Entity> | EntitySchema<Entity> | string
   ): Repository<Entity> {

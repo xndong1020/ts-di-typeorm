@@ -476,7 +476,8 @@ import { UserRepository } from "./repositories/UserRepository";
 import { UserService } from "./services/UserService";
 
 // Setup scope of the container
-const container = Container.of();
+const requestId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER); // uuid-like
+const container = Container.of(String(requestId));
 
 // Register resolves
 container.set("dbContext", new DbContext());

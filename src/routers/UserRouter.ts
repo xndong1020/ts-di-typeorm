@@ -1,15 +1,12 @@
 import express from "express";
-import container from "../container";
+import container from "../container.config";
 
 import UserController from "../controllers/UserController";
 
 const usersRouter = express.Router();
 
-const userController = container.resolve(UserController);
+const userController: UserController = container.get("userController");
 
-usersRouter.get("/", async (req, res) => {
-  const result = await userController.getAll();
-  return res.json(result);
-});
+usersRouter.get("/", userController.getAll);
 
 export default usersRouter;
