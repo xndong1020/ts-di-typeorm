@@ -8,7 +8,7 @@ describe("api e2e test", () => {
   let server: Server;
   let request: SuperAgentTest;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     await dbConnect();
     if (!!dataSource.initialize) {
       app = (await import("../app")).default;
@@ -19,14 +19,13 @@ describe("api e2e test", () => {
     request = agent(server);
   });
 
-  afterEach(async () => {
+  afterAll(async () => {
     const entities = dataSource.entityMetadatas;
     for (const entity of entities) {
       const repository = dataSource.getRepository(entity.name); // Get repository
       await repository.clear(); // Clear each entity table's content
     }
-
-    dataSource.destroy();
+    await dataSource.destroy(); // close connection to database
     server.close();
   });
 
@@ -44,6 +43,26 @@ describe("api e2e test", () => {
         lastName: "Doe",
         email: "test@example.com",
         deletedDate: null,
+        transfers: [{ transferId: "2", userId: "2", dofType: "PDOF" }],
+      },
+    ]);
+  });
+
+  it("/users getAll should return all records1", async () => {
+    // const { status, data } = await axios.get<User[]>(
+    //   "http://localhost:4000/v1/users"
+    // );
+    const { status, body } = await request.get("/v1/users");
+    expect(status).toEqual(200);
+    expect(body.length).toEqual(1);
+    expect(body).toMatchObject([
+      {
+        uid: "2",
+        firstName: "John",
+        lastName: "Doe",
+        email: "test@example.com",
+        deletedDate: null,
+        transfers: [{ transferId: "2", userId: "2", dofType: "PDOF" }],
       },
     ]);
   });
