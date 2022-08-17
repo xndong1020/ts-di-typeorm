@@ -3,17 +3,13 @@ import { mockUserService } from "../../testUtils/mockUserService";
 import UserController from "../UserController";
 
 const mockRequest = {
-  body: {
-    firstName: "J",
-    lastName: "Doe",
-    email: "jdoe@abc123.com",
-    password: "Abcd1234",
-    passwordConfirm: "Abcd1234",
-    company: "ABC Inc.",
-  },
-} as unknown as Request;
+  ...jest.requireActual("express"),
+  body: { 1: 2 },
+  params: { 3: 4 },
+};
 
 export const mockResponse = {
+  ...jest.requireActual("express").response,
   send: jest.fn().mockImplementation((data) => console.log(data)),
 };
 
@@ -25,10 +21,7 @@ describe("UserRepository", () => {
   });
 
   it("getAll() should return all users", async () => {
-    const test = await userController.getAll(
-      mockRequest as any,
-      mockResponse as any
-    );
+    const test = await userController.getAll(mockRequest, mockResponse);
 
     expect(mockResponse.send).toHaveBeenCalledWith(fakeUsers);
   });
