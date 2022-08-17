@@ -11,6 +11,7 @@ class UserController extends BaseController {
 
   getAll = async (req: Request, res: Response) => {
     const resource = await this.service.getAll();
+    console.log("fffffffffffffffffff", res);
     res.send(resource);
   };
 }
