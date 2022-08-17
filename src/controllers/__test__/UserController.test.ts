@@ -10,7 +10,7 @@ const mockRequest = {
 
 export const mockResponse = {
   ...jest.requireActual("express").response,
-  send: jest.fn().mockImplementation((data) => console.log(data)),
+  send: jest.fn().mockImplementation((data) => data),
 };
 
 describe("UserRepository", () => {
